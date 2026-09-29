@@ -193,4 +193,18 @@ input[type=number] { width: 84px; text-align: right; }
   .level { width: 100%; }
   .buddy { width: 72px; height: 72px; }
 }
+@media (max-width: 520px) {
+  .wrap { padding-left: max(14px, env(safe-area-inset-left)); padding-right: max(14px, env(safe-area-inset-right)); padding-bottom: max(24px, env(safe-area-inset-bottom)); }
+  .habit-name { font-size: 17px; }
+  .habit > .seg { grid-column: 1 / -1; }
+  .habit > .seg button { flex: 1; padding: 8px 0; font-size: 14px; }
+  .stepper { gap: 8px; }
+  .stepper button { width: 40px; height: 40px; }
+  .stepper output { min-width: 72px; }
+  .chip { padding: 6px 14px; }
+  .tabs { gap: 6px; }
+  .tabs button { padding: 8px 16px; }
+  input[type=text], input[type=number], input[type=date] { font-size: 16px; } /* stops iOS zooming on focus */
+  .add input[type=text] { flex-basis: 100%; }
+}
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
