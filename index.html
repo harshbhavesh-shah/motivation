@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#fff3dc">
+<title>Steady</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='14' fill='%23ff6b57' stroke='%232b2140' stroke-width='2.5'/><circle cx='11.5' cy='14' r='2' fill='%232b2140'/><circle cx='20.5' cy='14' r='2' fill='%232b2140'/><path d='M11 20q5 5 10 0' stroke='%232b2140' stroke-width='2.5' fill='none' stroke-linecap='round'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="auth" id="auth" hidden>
+  <div class="card">
+    <div class="buddy idle" id="authBuddy"></div>
+    <h1>Steady</h1>
+    <p>Sign in to sync your streaks between your laptop and your phone.</p>
+    <button class="btn" id="signIn">Continue with Google</button>
+    <p class="tiny" id="authMsg" style="margin-top:12px"></p>
+  </div>
+</div>
+
+<div class="wrap">
+  <header class="top">
+    <div class="hero">
+      <button class="buddy idle" id="buddy" aria-label="Your buddy. Tap for a pep talk."></button>
+      <div>
+        <p class="eyebrow" id="dateLine"></p>
+        <h1 id="greeting">Hello.</h1>
+        <p class="nudge" id="nudge"></p>
+      </div>
+    </div>
+    <div class="level" aria-label="Level progress">
+      <div class="level-top"><span class="level-num" id="lvlNum">Lv 1</span><span class="level-name" id="lvlName"></span></div>
+      <div class="bar"><i id="lvlBar"></i></div>
+      <p class="tiny" id="lvlText"></p>
+    </div>
+  </header>
+
+  <nav class="tabs">
+    <button data-view="home" class="on">Today</button>
+    <button data-view="badges">Badges</button>
+    <button data-view="goals">Goals</button>
+  </nav>
+
+  <main id="home" class="view">
+    <section class="grid">
+      <div class="col">
+        <article class="card" id="dayCard"></article>
+        <article class="card" id="weekCard"></article>
+      </div>
+      <div class="col">
+        <article class="card" id="calCard"></article>
+        <article class="card" id="focusCard"></article>
+      </div>
+    </section>
+  </main>
+
+  <main id="badges" class="view" hidden><article class="card" id="badgeCard"></article></main>
+
+  <main id="goals" class="view" hidden>
+    <section class="grid">
+      <article class="card" id="targetsCard"></article>
+      <article class="card" id="customCard"></article>
+    </section>
+    <section class="card" id="dataCard"></section>
+  </main>
+
+  <footer class="foot tiny" id="saveState">Loading…</footer>
+</div>
+<canvas id="fx"></canvas>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script type="module" src="app.js"></script>
+</body>
+</html>
