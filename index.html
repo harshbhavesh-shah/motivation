@@ -86,7 +86,7 @@
 </div>
 <dialog id="foodDlg" aria-label="Add food">
   <div class="dlg-head"><h2>Add food</h2><button class="x" data-closedlg aria-label="Close">×</button></div>
-  <div class="dtabs" id="dtabs"><button data-ftab="scan">📷 Scan</button><button data-ftab="saved">Saved</button><button data-ftab="manual">By hand</button></div>
+  <div class="dtabs" id="dtabs"><button data-ftab="scan">📷 Scan</button><button data-ftab="saved">Saved</button><button data-ftab="quick">Quick</button><button data-ftab="manual">By hand</button></div>
 
   <section id="scanPane">
     <div class="scanbox"><video id="scanVideo" playsinline muted></video><div class="reticle"></div></div>
@@ -97,6 +97,20 @@
   <section id="savedPane" hidden>
     <input type="text" id="savedQ" placeholder="Search your foods…" aria-label="Search saved foods">
     <div id="savedList"></div>
+  </section>
+
+  <section id="quickPane" hidden>
+    <p class="tiny" style="margin:0 0 10px">No barcode? Canteen, restaurant, a friend&rsquo;s place? Log a rough estimate.</p>
+    <div class="presets" id="qPresets"></div>
+    <form id="quickForm">
+      <div class="sub meals" id="qMeals"></div>
+      <div class="field"><label for="qName">What</label><input type="text" id="qName" maxlength="60" style="width:170px"></div>
+      <div class="field"><label for="qKcal">Calories<span class="tiny">Your best guess</span></label><input type="number" id="qKcal" min="1" step="any" inputmode="numeric" required></div>
+      <div class="field"><label for="qP">Protein (g)<span class="tiny">Optional</span></label><input type="number" id="qP" min="0" step="any" inputmode="decimal"></div>
+      <label class="save-row"><input type="checkbox" id="qSave"> Save as a one-tap preset</label>
+      <p class="tiny" id="qLast" style="margin:10px 0"></p>
+      <button class="btn">Add</button>
+    </form>
   </section>
 
   <section id="manualPane" hidden>

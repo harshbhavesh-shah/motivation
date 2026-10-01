@@ -40,6 +40,9 @@ const DEFAULT = () => ({
   goals: { gymPerWeek: 4, eatDaysPerWeek: 5, workPerDay: 6, water: 8, sleep: 8, kcal: 2000, protein: 100 },
   profile: { sex: 'm', age: '', height: '', weight: '', activity: 1.375, pace: 0.5 },
   foods: [],
+  quick: {},
+  // One-tap meals you eat all the time. Numbers are estimates: edit by deleting and re-saving from the Quick tab.
+  presets: [{ id: 'p-breakfast', meal: 'Breakfast', name: 'Cornflakes, soy milk, black coffee', kcal: 230, p: 10, f: 4, c: 36 }],
   days: {},
   custom: [],
   badges: {},
@@ -50,7 +53,8 @@ const DEFAULT = () => ({
   ],
 });
 const norm = (d) => ({ ...DEFAULT(), ...d, goals: { ...DEFAULT().goals, ...(d && d.goals) }, badges: (d && d.badges) || {},
-  profile: { ...DEFAULT().profile, ...(d && d.profile) }, foods: Array.isArray(d && d.foods) ? d.foods : [],
+  profile: { ...DEFAULT().profile, ...(d && d.profile) }, foods: Array.isArray(d && d.foods) ? d.foods : [], quick: (d && d.quick) || {},
+  presets: Array.isArray(d && d.presets) ? d.presets : DEFAULT().presets,
   rewards: Array.isArray(d && d.rewards) ? d.rewards : DEFAULT().rewards });
 
 /* ---------- state ---------- */
@@ -160,20 +164,22 @@ function foodTotals(k) {
   for (const e of day(k).food || []) { t.kcal += e.kcal; t.p += e.p; t.f += e.f; t.c += e.c; }
   return { kcal: Math.round(t.kcal), p: r1(t.p), f: r1(t.f), c: r1(t.c) };
 }
-// "On target" is a band, not just a ceiling: eating far under the goal isn't rewarded.
+// Not over the goal, and the day looks properly fed: either close to the goal, or at least 3 different meals
+// logged (canteen/restaurant meals are estimates, so the numbers alone can't tell a light day from an untracked one).
+const mealsLogged = (k) => new Set((day(k).food || []).map((e) => e.meal)).size;
 function foodOnTarget(k) {
   const e = day(k).food; if (!e || !e.length) return false;
   const t = foodTotals(k).kcal, goal = S.goals.kcal;
-  return t >= goal * 0.75 && t <= goal * 1.05;
+  return t <= goal * 1.05 && (t >= goal * 0.75 || mealsLogged(k) >= 3);
 }
 const defaultMeal = () => { const h = new Date().getHours(); return h < 11 ? 'Breakfast' : h < 16 ? 'Lunch' : h < 21 ? 'Dinner' : 'Snack'; };
 function foodMsg(k) {
   const e = day(k).food || [], t = foodTotals(k).kcal, goal = S.goals.kcal;
   if (!e.length) return 'Nothing logged yet. Scan your first meal!';
   if (t > goal * 1.05) return `Over by ${t - goal} kcal. No drama: one day doesn’t undo the week. Reset at the next meal.`;
-  if (foodOnTarget(k)) return 'Right in the zone. That’s how a steady deficit gets built.';
+  if (foodOnTarget(k)) return t >= goal * 0.75 ? 'Right in the zone. That’s how a steady deficit gets built.' : 'All your meals are logged and you’re under target. Solid day.';
   if (k === TODAY() && new Date().getHours() < 18) return `${goal - t} kcal left. Plenty of room for a proper meal.`;
-  return 'A bit light today. Under-eating wrecks training and sleep, so don’t skip your fuel.';
+  return 'Looks like a meal is missing. Use Quick add for a rough estimate (canteen, restaurant) so the day adds up.';
 }
 // Mifflin-St Jeor estimate. Pace is kg/week (about 1100 kcal/day per kg/week), never below a basic minimum.
 function calc() {
@@ -469,6 +475,23 @@ function calBarColor(k) {
   const t = foodTotals(k).kcal, g = S.goals.kcal;
   return t > g * 1.05 ? 'var(--coral)' : t >= g * 0.75 ? 'var(--mint)' : 'var(--sun)';
 }
+// One-tap preset chips, hiding any already logged on this day.
+function presetChips(k) {
+  const used = new Set((day(k).food || []).map((e) => e.preset));
+  const list = S.presets.filter((p) => !used.has(p.id));
+  return list.length ? `<div class="presets">${list.map((p) => `<button class="chip" data-preset="${esc(p.id)}">⚡ ${esc(p.name)} <small>${p.kcal}</small></button>`).join('')}</div>` : '';
+}
+function logPreset(id) {
+  const p = S.presets.find((x) => x.id === id); if (!p) return;
+  const k = selected;
+  if (dlg().open) dlg().close();
+  update(k, { food: [...(day(k).food || []), { id: String(Date.now()) + Math.floor(Math.random() * 1e3), meal: p.meal, name: p.name, qty: 1, basis: 'unit',
+    kcal: p.kcal, p: p.p, f: p.f, c: p.c, est: true, preset: p.id }] });
+  toast(`⚡ ${p.name}: +${p.kcal} kcal`);
+}
+function renderQPresets() {
+  $('qPresets').innerHTML = S.presets.length ? S.presets.map((p) => `<span class="pchip"><button type="button" class="chip" data-preset="${esc(p.id)}">⚡ ${esc(p.name)} <small>${p.kcal} kcal</small></button><button type="button" class="x" data-delpreset="${esc(p.id)}" aria-label="Delete preset">×</button></span>`).join('') : '';
+}
 function renderFoodMini() {
   const k = selected, t = foodTotals(k), g = S.goals.kcal;
   $('foodMini').innerHTML = `
@@ -476,7 +499,8 @@ function renderFoodMini() {
     <div class="fuel-row"><b>${t.kcal}</b><span class="tiny">/ ${g} kcal</span><span class="tiny" style="margin-left:auto">P ${t.p}g · F ${t.f}g · C ${t.c}g</span></div>
     <div class="bar"><i style="width:${Math.min(100, t.kcal / g * 100)}%;background:${calBarColor(k)}"></i></div>
     <p class="tiny" style="margin:8px 0 14px">${esc(foodMsg(k))}</p>
-    <button class="btn" data-addfood="scan">\u{1F4F7} Log food</button>`;
+    ${presetChips(k)}
+    <div class="data-row"><button class="btn" data-addfood="scan">\u{1F4F7} Scan</button><button class="btn ghost" data-addfood="quick">Quick add</button></div>`;
 }
 function renderFood() {
   const k = selected, t = foodTotals(k), g = S.goals, entries = day(k).food || [], isToday = k === TODAY();
@@ -485,8 +509,8 @@ function renderFood() {
     const list = entries.filter((e) => e.meal === m); if (!list.length) return '';
     const sum = list.reduce((s, e) => s + e.kcal, 0);
     return `<div class="meal"><div class="meal-head"><h3>${m}</h3><span class="tiny">${Math.round(sum)} kcal</span></div>
-      ${list.map((e) => `<div class="entry"><div><b>${esc(e.name)}</b><span class="tiny">${r1(e.qty)}${e.basis === 'unit' ? ' serving' + (e.qty === 1 ? '' : 's') : ' g'} · P ${r1(e.p)} F ${r1(e.f)} C ${r1(e.c)}</span></div>
-        <span class="kc">${e.kcal}</span><button class="x" data-delfood="${e.id}" aria-label="Remove">×</button></div>`).join('')}</div>`;
+      ${list.map((e) => `<div class="entry"><div><b>${esc(e.name)}</b><span class="tiny">${e.est ? `estimate${e.p ? ` · P ${r1(e.p)}` : ''}` : `${r1(e.qty)}${e.basis === 'unit' ? ' serving' + (e.qty === 1 ? '' : 's') : ' g'} · P ${r1(e.p)} F ${r1(e.f)} C ${r1(e.c)}`}</span></div>
+        <span class="kc">${e.est ? '~' : ''}${e.kcal}</span><button class="x" data-delfood="${e.id}" aria-label="Remove">×</button></div>`).join('')}</div>`;
   }).join('');
   $('foodSummary').innerHTML = `
     <div class="card-head"><h2>${isToday ? 'Food today' : fmtLong(k)}</h2>${isToday ? '' : '<button class="dayjump" data-today>Back to today</button>'}</div>
@@ -496,22 +520,35 @@ function renderFood() {
     </div>
     <div class="macros"><span style="--c:var(--grape)"><i class="dot"></i>Protein <b>${t.p} g</b></span><span style="--c:var(--sun)"><i class="dot"></i>Fat <b>${t.f} g</b></span><span style="--c:var(--sky)"><i class="dot"></i>Carbs <b>${t.c} g</b></span></div>
     <p class="foodmsg">${esc(foodMsg(k))}</p>
-    <div class="data-row"><button class="btn" data-addfood="scan">\u{1F4F7} Scan barcode</button><button class="btn ghost" data-addfood="saved">Saved foods</button><button class="btn ghost" data-addfood="manual">Add by hand</button></div>`;
+    ${presetChips(k)}
+    <div class="data-row"><button class="btn" data-addfood="scan">\u{1F4F7} Scan barcode</button><button class="btn ghost" data-addfood="quick">Quick add</button><button class="btn ghost" data-addfood="saved">Saved foods</button><button class="btn ghost" data-addfood="manual">By hand</button></div>`;
   $('foodMeals').innerHTML = `<div class="card-head"><h2>Meals</h2><span class="tiny">${entries.length} item${entries.length === 1 ? '' : 's'}</span></div>
     ${meals || '<p class="empty">Nothing here yet. Scan a barcode or add something by hand.</p>'}`;
 }
 
 /* ---- add-food dialog ---- */
-let draft = null, ftab = 'scan', pendingCode = '', scanStop = null;
+const PANES = ['scan', 'saved', 'quick', 'manual'];
+let draft = null, ftab = 'scan', pendingCode = '', scanStop = null, qMeal = 'Lunch';
+// Quick add: a rough estimate for meals with no barcode (canteen, restaurant). Remembers your last one per meal.
+function setQuickMeal(m) {
+  qMeal = m;
+  $('qMeals').innerHTML = MEALS.map((x) => `<button type="button" class="chip ${x === m ? 'on' : ''}" data-qmeal="${x}">${x}</button>`).join('');
+  const last = S.quick[m];
+  $('qName').value = last ? last.name : m === 'Lunch' ? 'Canteen lunch' : 'Eating out';
+  $('qKcal').value = last ? last.kcal : '';
+  $('qP').value = last && last.p ? last.p : '';
+  $('qLast').textContent = last ? `Pre-filled from last time. Change it if today was different.` : 'Rough is fine. A steady estimate beats a missing meal.';
+}
 const dlg = () => $('foodDlg');
 function openFood(tab) { draft = null; pendingCode = ''; if (!dlg().open) dlg().showModal(); setFtab(tab || 'scan'); }
 function setFtab(t) {
   ftab = t; stopScan(); draft = null;
   $('dtabs').hidden = false; $('pickPane').hidden = true;
-  for (const p of ['scan', 'saved', 'manual']) $(p + 'Pane').hidden = p !== t;
+  for (const p of PANES) $(p + 'Pane').hidden = p !== t;
   document.querySelectorAll('#dtabs button').forEach((b) => b.classList.toggle('on', b.dataset.ftab === t));
   if (t === 'scan') { $('scanMsg').textContent = ''; startScan(); }
   if (t === 'saved') renderSaved();
+  if (t === 'quick') { $('quickForm').reset(); renderQPresets(); setQuickMeal(defaultMeal()); }
   if (t === 'manual') $('manualForm').reset();
 }
 function stopScan() { if (scanStop) { try { scanStop(); } catch {} scanStop = null; } }
@@ -573,7 +610,7 @@ function openPick(food, qty) {
   stopScan();
   draft = { food, qty: qty || (food.basis === 'unit' ? 1 : food.serving || 100), meal: defaultMeal() };
   if (!dlg().open) dlg().showModal();
-  for (const p of ['scan', 'saved', 'manual']) $(p + 'Pane').hidden = true;
+  for (const p of PANES) $(p + 'Pane').hidden = true;
   $('dtabs').hidden = true; $('pickPane').hidden = false;
   const f = food, unit = f.basis === 'unit';
   const quick = unit ? [0.5, 1, 2] : [...new Set([f.serving, 50, 100, 150, 200].filter(Boolean))].sort((a, b) => a - b);
@@ -727,6 +764,9 @@ document.addEventListener('click', (e) => {
   }
   if (ds.addfood) return openFood(ds.addfood);
   if (ds.ftab) return setFtab(ds.ftab);
+  if (ds.qmeal) return setQuickMeal(ds.qmeal);
+  if (ds.preset) return logPreset(ds.preset);
+  if (ds.delpreset) { S.presets = S.presets.filter((p) => p.id !== ds.delpreset); save(); return renderQPresets(); }
   if (ds.closedlg !== undefined) return dlg().close();
   if (ds.pickfood) return openPick(S.foods.find((f) => f.id === ds.pickfood));
   if (ds.qty) { $('qty').value = ds.qty; return updatePrev(); }
@@ -766,6 +806,17 @@ document.addEventListener('input', (e) => {
 });
 document.addEventListener('submit', (e) => {
   if (e.target.id === 'codeForm') { e.preventDefault(); const v = $('codeIn').value; $('codeIn').value = ''; return lookup(v); }
+  if (e.target.id === 'quickForm') {
+    e.preventDefault();
+    const kcal = Math.round(+$('qKcal').value), p = r1($('qP').value), name = $('qName').value.trim() || 'Eating out';
+    if (!(kcal > 0)) return;
+    S.quick[qMeal] = { name, kcal, p };
+    const k = selected, pid = $('qSave').checked ? 'p-' + Date.now() : undefined;
+    if (pid) S.presets.push({ id: pid, meal: qMeal, name, kcal, p, f: 0, c: 0 });
+    dlg().close();
+    update(k, { food: [...(day(k).food || []), { id: String(Date.now()) + Math.floor(Math.random() * 1e3), meal: qMeal, name, qty: 1, basis: 'unit', kcal, p, f: 0, c: 0, est: true, ...(pid && { preset: pid }) }] });
+    return toast(`\u{1F37D}️ +${kcal} kcal logged (estimate)`);
+  }
   if (e.target.id === 'manualForm') {
     e.preventDefault();
     const v = (id) => $(id).value, name = v('mfName').trim(); if (!name) return;

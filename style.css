@@ -204,7 +204,18 @@ dialog::backdrop { background: rgba(43, 33, 64, .55); }
 .qty input { width: 110px; text-align: right; background: var(--bg); border: 2.5px solid var(--edge); border-radius: 12px; padding: 8px 10px; }
 .pick-prev { margin: 14px 0; padding: 10px 14px; border: 2.5px dashed var(--edge); border-radius: 14px; text-align: center; font-size: 15px; }
 .pick-prev b { font-family: var(--head); font-size: 28px; font-weight: 500; }
-#pickBody .sub { --c: var(--coral); }
+.presets { --c: var(--sun); display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.presets:empty { display: none; }
+.presets .chip { text-align: left; }
+.presets .chip small { opacity: .7; margin-left: 4px; }
+.pchip { display: inline-flex; align-items: center; }
+.pchip .x { border: 0; background: none; color: var(--muted); font-size: 20px; padding: 0 6px; opacity: .6; }
+.pchip .x:hover { opacity: 1; color: var(--coral); }
+.save-row { display: flex; align-items: center; gap: 8px; font-size: 14px; margin-top: 10px; }
+.save-row input { width: 18px; height: 18px; accent-color: var(--coral); }
+#pickBody .sub, #qMeals { --c: var(--coral); }
+#qMeals { margin-bottom: 8px; }
+@media (max-width: 520px) { .dtabs button { font-size: 14px; padding: 6px 2px; } }
 .sub.meals { margin-bottom: 14px; }
 .btn:disabled { opacity: .45; }
 #pickBody h3 { font-size: 20px; }
