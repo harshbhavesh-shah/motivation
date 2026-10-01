@@ -163,6 +163,23 @@ input[type=number] { width: 84px; text-align: right; }
 .empty { color: var(--muted); margin: 6px 0; }
 .data-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
 
+/* rewards */
+.reward-line { font-family: var(--head); font-size: 18px; margin: 0 0 12px; }
+.add input.emo-in { flex: 0 0 64px; min-width: 0; width: 64px; text-align: center; }
+.rewards { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 14px; margin-top: 14px; }
+.reward { position: relative; border: 2.5px solid var(--edge); border-radius: 20px; padding: 16px 14px 14px; text-align: center; background: color-mix(in srgb, var(--sun) 24%, var(--card)); box-shadow: 0 4px 0 var(--edge); display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.reward .big { font-size: 38px; line-height: 1.1; }
+.reward h3 { font-size: 16px; margin: 2px 0 6px; }
+.reward .lvl { position: absolute; top: 10px; left: 10px; font-family: var(--head); font-size: 12px; background: var(--grape); color: #fff; border: 2px solid var(--edge); border-radius: 99px; padding: 0 8px; }
+.reward .x { position: absolute; top: 4px; right: 8px; border: 0; background: none; color: var(--muted); font-size: 20px; opacity: .4; }
+.reward .x:hover { opacity: 1; color: var(--coral); }
+.reward .btn { margin-top: auto; animation: wiggle 1.4s ease-in-out infinite; }
+.reward .tiny { margin-top: auto; }
+.reward.locked { background: var(--track); box-shadow: none; border-style: dashed; }
+.reward.locked .big { filter: grayscale(1); opacity: .4; }
+.reward.claimed { background: color-mix(in srgb, var(--mint) 22%, var(--card)); }
+@keyframes wiggle { 0%, 100% { transform: rotate(0); } 8% { transform: rotate(-3deg); } 16% { transform: rotate(3deg); } 24% { transform: rotate(0); } }
+
 /* badges */
 .badges { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; }
 .badge { border: 2.5px solid var(--edge); border-radius: 20px; padding: 16px 12px; text-align: center; background: color-mix(in srgb, var(--c) 22%, var(--card)); box-shadow: 0 4px 0 var(--edge); }
@@ -205,6 +222,6 @@ input[type=number] { width: 84px; text-align: right; }
   .tabs { gap: 6px; }
   .tabs button { padding: 8px 16px; }
   input[type=text], input[type=number], input[type=date] { font-size: 16px; } /* stops iOS zooming on focus */
-  .add input[type=text] { flex-basis: 100%; }
+  .add input[type=text]:not(.emo-in) { flex-basis: 100%; }
 }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }

@@ -42,6 +42,7 @@
   <nav class="tabs">
     <button data-view="home" class="on">Today</button>
     <button data-view="badges">Badges</button>
+    <button data-view="rewards">Rewards</button>
     <button data-view="goals">Goals</button>
   </nav>
 
@@ -53,12 +54,15 @@
       </div>
       <div class="col">
         <article class="card" id="calCard"></article>
+        <article class="card" id="rewardCard"></article>
         <article class="card" id="focusCard"></article>
       </div>
     </section>
   </main>
 
   <main id="badges" class="view" hidden><article class="card" id="badgeCard"></article></main>
+
+  <main id="rewards" class="view" hidden><article class="card" id="rewardsCard"></article></main>
 
   <main id="goals" class="view" hidden>
     <section class="grid">

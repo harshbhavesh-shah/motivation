@@ -41,8 +41,14 @@ const DEFAULT = () => ({
   days: {},
   custom: [],
   badges: {},
+  rewards: [
+    { id: 'r1', level: 3,  emo: '☕', text: 'Fancy coffee and a pastry', claimed: '' },
+    { id: 'r2', level: 5,  emo: '\u{1F3AC}', text: 'Movie night, snacks included', claimed: '' },
+    { id: 'r3', level: 10, emo: '\u{1F4B6}', text: '€100: save it, or dinner out', claimed: '' },
+  ],
 });
-const norm = (d) => ({ ...DEFAULT(), ...d, goals: { ...DEFAULT().goals, ...(d && d.goals) }, badges: (d && d.badges) || {} });
+const norm = (d) => ({ ...DEFAULT(), ...d, goals: { ...DEFAULT().goals, ...(d && d.goals) }, badges: (d && d.badges) || {},
+  rewards: Array.isArray(d && d.rewards) ? d.rewards : DEFAULT().rewards });
 
 /* ---------- state ---------- */
 let S = DEFAULT();
@@ -210,6 +216,12 @@ function levelInfo(xp) {
   return { lvl, into: left, need, name: LEVELS[Math.min(lvl - 1, LEVELS.length - 1)] };
 }
 
+/* ---------- rewards ---------- */
+// Total xp needed to reach a level (inverse of levelInfo).
+function xpToReach(lvl) { let t = 0; for (let l = 1; l < lvl; l++) t += 100 + (l - 1) * 40; return t; }
+const sortedRewards = () => [...S.rewards].sort((a, b) => a.level - b.level);
+const nextReward = () => sortedRewards().find((r) => !r.claimed && r.level > levelInfo(totalXp()).lvl);
+
 /* ---------- badges ---------- */
 const count = (fn) => Object.keys(S.days).filter(fn).length;
 const BADGES = [
@@ -298,7 +310,10 @@ function update(k, patch) {
   const newlyMet = HABITS.filter((h) => met(h.key, k) && !metBefore.includes(h.key));
   if (newlyMet.length) burst(28);
   if (!wasPerfect && perfect(k)) { toast(`\u{1F31F} Perfect day! +${PERFECT_BONUS} bonus xp`); burst(110); }
-  else if (info.lvl > lvBefore) { toast(`\u{1F389} Level ${info.lvl}: ${info.name}`); burst(120); }
+  else if (info.lvl > lvBefore) {
+    toast(`\u{1F389} Level ${info.lvl}: ${info.name}`); burst(120);
+    S.rewards.filter((r) => !r.claimed && r.level > lvBefore && r.level <= info.lvl).forEach((r) => toast(`\u{1F381} Reward unlocked: ${r.text}`));
+  }
   else if (after - before >= 5) toast(`+${after - before} xp`);
   syncBadges(false);
   save(); render();
@@ -412,6 +427,38 @@ function renderFocus() {
     <div class="card-head"><h2>\u{1F3AF} Focus</h2><button class="dayjump" data-view="goals">Manage</button></div>
     ${open.length ? open.map(goalRow).join('') : '<p class="empty">Nothing set. Add a goal worth 50 xp.</p>'}`;
 }
+function renderNextReward() {
+  const L = levelInfo(totalXp()), r = nextReward(), ready = sortedRewards().filter((x) => !x.claimed && x.level <= L.lvl);
+  let body;
+  if (ready.length) body = `<p class="reward-line"><span class="emo">\u{1F381}</span> <b>${ready.length}</b> reward${ready.length > 1 ? 's' : ''} waiting for you!</p><button class="btn" data-view="rewards">Go claim</button>`;
+  else if (r) {
+    const have = totalXp(), from = xpToReach(Math.max(1, r.level - 1)), need = xpToReach(r.level);
+    const pct = clamp((have - from) / Math.max(1, need - from) * 100, 0, 100);
+    body = `<p class="reward-line"><span class="emo">${esc(r.emo)}</span> ${esc(r.text)}</p>
+      <div class="bar"><i style="width:${pct}%"></i></div><p class="tiny">Level ${r.level} · ${need - have} xp to go</p>`;
+  } else body = '<p class="empty">No upcoming rewards. Add one to chase.</p>';
+  $('rewardCard').innerHTML = `<div class="card-head"><h2>\u{1F381} Next reward</h2><button class="dayjump" data-view="rewards">All</button></div>${body}`;
+}
+function renderRewards() {
+  const L = levelInfo(totalXp()), xp = totalXp();
+  const card = (r) => {
+    const open = r.level <= L.lvl, state = r.claimed ? 'claimed' : open ? 'ready' : 'locked';
+    const foot = r.claimed ? `<p class="tiny">Enjoyed ${parse(r.claimed).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</p>`
+      : open ? `<button class="btn" data-claim="${r.id}">Claim it!</button>`
+      : `<p class="tiny">${xpToReach(r.level) - xp} xp to go</p>`;
+    return `<div class="reward ${state}"><button class="x" data-delreward="${r.id}" aria-label="Delete reward">×</button>
+      <span class="lvl">Lv ${r.level}</span><span class="big">${esc(r.emo)}</span><h3>${esc(r.text)}</h3>${foot}</div>`;
+  };
+  const list = sortedRewards();
+  $('rewardsCard').innerHTML = `
+    <div class="card-head"><h2>Rewards</h2><span class="tiny">You’re level ${L.lvl}</span></div>
+    <p class="empty" style="margin-bottom:14px">Treats you set for yourself. Reach the level, then tap claim once you’ve actually enjoyed it (or moved the money).</p>
+    <form class="add" id="addReward"><input type="text" id="rwEmo" class="emo-in" value="\u{1F381}" maxlength="4" aria-label="Emoji">
+      <input type="text" id="rwText" placeholder="€50 to savings, new headphones…" maxlength="80" required aria-label="Reward">
+      <input type="number" id="rwLevel" min="2" max="99" value="${L.lvl + 1}" style="width:84px" aria-label="Level">
+      <button class="btn">Add</button></form>
+    ${list.length ? `<div class="rewards">${list.map(card).join('')}</div>` : '<p class="empty">Nothing here yet. What would make leveling up worth it?</p>'}`;
+}
 function renderBadges() {
   const got = BADGES.filter((b) => S.badges[b.id]).length;
   $('badgeCard').innerHTML = `
@@ -445,12 +492,14 @@ function renderGoals() {
     ${cloud && cloud.user ? '<button class="btn ghost" id="signOut">Sign out</button>' : ''}</div>`;
 }
 
-const view = () => ['home', 'badges', 'goals'].find((v) => !$(v).hidden);
+const VIEWS = ['home', 'badges', 'rewards', 'goals'];
+const view = () => VIEWS.find((v) => !$(v).hidden);
 function render() {
   renderHeader();
   const v = view();
-  if (v === 'home') { renderDay(); renderWeek(); renderCal(); renderFocus(); }
+  if (v === 'home') { renderDay(); renderWeek(); renderCal(); renderNextReward(); renderFocus(); }
   else if (v === 'badges') renderBadges();
+  else if (v === 'rewards') renderRewards();
   else renderGoals();
 }
 
@@ -476,6 +525,11 @@ document.addEventListener('click', (e) => {
     if (c.done) { toast('\u{1F3AF} Goal done! +50 xp'); burst(70); }
     syncBadges(false); save(); return render();
   }
+  if (ds.claim) {
+    const r = S.rewards.find((x) => x.id === ds.claim); r.claimed = TODAY();
+    toast(`${r.emo} Enjoy it, you earned it!`); burst(140); save(); return render();
+  }
+  if (ds.delreward) { S.rewards = S.rewards.filter((x) => x.id !== ds.delreward); save(); return render(); }
   if (ds.del) { S.custom = S.custom.filter((x) => x.id !== ds.del); save(); return render(); }
   if (t.id === 'buddy') {
     t.classList.remove('bounce'); void t.offsetWidth; t.classList.add('bounce');
@@ -490,11 +544,18 @@ document.addEventListener('click', (e) => {
 });
 document.querySelectorAll('.tabs button').forEach((b) => b.addEventListener('click', () => showView(b.dataset.view)));
 function showView(v) {
-  for (const id of ['home', 'badges', 'goals']) $(id).hidden = id !== v;
+  for (const id of VIEWS) $(id).hidden = id !== v;
   document.querySelectorAll('.tabs button').forEach((b) => b.classList.toggle('on', b.dataset.view === v));
   render(); scrollTo(0, 0);
 }
 document.addEventListener('submit', (e) => {
+  if (e.target.id === 'addReward') {
+    e.preventDefault();
+    const text = $('rwText').value.trim(), level = Math.round(+$('rwLevel').value);
+    if (!text || !(level >= 2)) return;
+    S.rewards.push({ id: String(Date.now()), level, emo: $('rwEmo').value.trim() || '\u{1F381}', text, claimed: '' });
+    save(); return render();
+  }
   if (e.target.id !== 'addGoal') return;
   e.preventDefault();
   const text = $('goalText').value.trim(); if (!text) return;
