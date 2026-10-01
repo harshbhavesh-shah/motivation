@@ -283,3 +283,4 @@ dialog::backdrop { background: rgba(43, 33, 64, .55); }
   .add input[type=text]:not(.emo-in) { flex-basis: 100%; }
 }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+.goal .tiny.late { color: var(--coral); font-weight: 800; }

@@ -35,6 +35,50 @@ const NUDGES = [
   'Today counts, whatever yesterday was.',
   'Be a little better than your last good day.',
 ];
+// Offered to each account once (see rewardsSeeded), so your own rewards are never overwritten.
+const EXTRA_REWARDS = [
+  { id: 'x1', level: 2,  emo: '\u{1F36B}', text: 'Favourite snack, zero guilt', claimed: '' },
+  { id: 'x2', level: 4,  emo: '\u{1F6C1}', text: 'A full evening off, no guilt', claimed: '' },
+  { id: 'x3', level: 6,  emo: '\u{1F355}', text: '€20 takeaway night', claimed: '' },
+  { id: 'x4', level: 7,  emo: '\u{1F45F}', text: 'New gym gear, up to €40', claimed: '' },
+  { id: 'x5', level: 8,  emo: '\u{1F486}', text: 'Massage or spa hour', claimed: '' },
+  { id: 'x6', level: 12, emo: '\u{1F37D}️', text: 'Nice restaurant dinner, up to €50', claimed: '' },
+  { id: 'x7', level: 15, emo: '\u{1F4B0}', text: '€150 to savings, or something you really want', claimed: '' },
+  { id: 'x8', level: 20, emo: '✈️', text: 'A weekend trip, €300 budget', claimed: '' },
+  { id: 'x9',  level: 3,  emo: '\u{1F37A}', text: 'A cold beer, zero guilt', claimed: '' },
+  { id: 'x10', level: 5,  emo: '\u{1F6CB}️', text: 'Lazy Sunday: pyjamas until noon', claimed: '' },
+  { id: 'x11', level: 6,  emo: '\u{1F3AE}', text: 'Two hours of games, and the “should I be working?” voice stays muted', claimed: '' },
+  { id: 'x12', level: 9,  emo: '\u{1F366}', text: 'Ice cream for dinner. Yes, really.', claimed: '' },
+  { id: 'x13', level: 9,  emo: '\u{1F3A4}', text: 'Karaoke night. Bad singing is mandatory.', claimed: '' },
+  { id: 'x14', level: 11, emo: '\u{1F37B}', text: 'Drinks with friends, first round on you', claimed: '' },
+  { id: 'x15', level: 13, emo: '\u{1F950}', text: 'Bakery run: pick any three things, no questions', claimed: '' },
+  { id: 'x16', level: 14, emo: '\u{1F60E}', text: 'One full day of doing absolutely nothing', claimed: '' },
+  { id: 'x17', level: 18, emo: '\u{1F3A2}', text: 'A day out somewhere silly (bowling, theme park, anything)', claimed: '' },
+  // Levels 16 to 50: a treat every couple of levels, bigger ones at 25, 30, 40 and 50. Amounts are placeholders, edit freely.
+  { id: 'x18', level: 16, emo: '🥾', text: 'A long walk or hike somewhere beautiful', claimed: '' },
+  { id: 'x19', level: 17, emo: '🍔', text: 'The burger of your dreams, all the toppings', claimed: '' },
+  { id: 'x20', level: 19, emo: '📚', text: 'A new book or game, your pick', claimed: '' },
+  { id: 'x21', level: 21, emo: '🎬', text: 'Cinema night with every snack', claimed: '' },
+  { id: 'x22', level: 22, emo: '🍣', text: 'Sushi night, up to €40', claimed: '' },
+  { id: 'x23', level: 23, emo: '🧖', text: 'Sauna or spa session', claimed: '' },
+  { id: 'x24', level: 24, emo: '🎟️', text: 'Tickets to a concert, match or show', claimed: '' },
+  { id: 'x25', level: 25, emo: '💶', text: 'Quarter-way milestone: €250 to savings, or a proper shopping trip', claimed: '' },
+  { id: 'x26', level: 26, emo: '🛌', text: 'Sleep in all weekend. Alarms are banned.', claimed: '' },
+  { id: 'x27', level: 27, emo: '🍷', text: 'A fancy drinks night at a nice bar', claimed: '' },
+  { id: 'x28', level: 28, emo: '🎨', text: 'A new hobby kit (art, music, climbing, anything)', claimed: '' },
+  { id: 'x29', level: 29, emo: '🥂', text: 'Host a feast for your friends', claimed: '' },
+  { id: 'x30', level: 30, emo: '🎧', text: 'Tech upgrade: headphones, speaker or gadget, up to €150', claimed: '' },
+  { id: 'x31', level: 32, emo: '🏕️', text: 'A night away somewhere new', claimed: '' },
+  { id: 'x32', level: 34, emo: '🍰', text: 'Dessert tasting: order three, share none', claimed: '' },
+  { id: 'x33', level: 36, emo: '🚴', text: 'Something adventurous: karting, kayaking or climbing', claimed: '' },
+  { id: 'x34', level: 38, emo: '🛍️', text: 'An outfit you actually love, up to €100', claimed: '' },
+  { id: 'x35', level: 40, emo: '🏖️', text: 'Long weekend away, €500 budget', claimed: '' },
+  { id: 'x36', level: 42, emo: '🍾', text: 'Celebrate with friends. You pick the place.', claimed: '' },
+  { id: 'x37', level: 44, emo: '🎁', text: 'Finally buy the thing you keep putting off', claimed: '' },
+  { id: 'x38', level: 46, emo: '🌅', text: 'A day trip somewhere you have never been', claimed: '' },
+  { id: 'x39', level: 48, emo: '💈', text: 'Full makeover day: haircut, shave or spa, your call', claimed: '' },
+  { id: 'x40', level: 50, emo: '🏆', text: 'The big one: a proper holiday, or €1,000 to savings', claimed: '' },
+];
 const DEFAULT = () => ({
   name: '',
   goals: { gymPerWeek: 4, eatDaysPerWeek: 5, workPerDay: 6, water: 8, sleep: 8, kcal: 2000, protein: 100 },
@@ -50,12 +94,17 @@ const DEFAULT = () => ({
     { id: 'r1', level: 3,  emo: '☕', text: 'Fancy coffee and a pastry', claimed: '' },
     { id: 'r2', level: 5,  emo: '\u{1F3AC}', text: 'Movie night, snacks included', claimed: '' },
     { id: 'r3', level: 10, emo: '\u{1F4B6}', text: '€100: save it, or dinner out', claimed: '' },
+    ...EXTRA_REWARDS,
   ],
 });
 const norm = (d) => ({ ...DEFAULT(), ...d, goals: { ...DEFAULT().goals, ...(d && d.goals) }, badges: (d && d.badges) || {},
   profile: { ...DEFAULT().profile, ...(d && d.profile) }, foods: Array.isArray(d && d.foods) ? d.foods : [], quick: (d && d.quick) || {},
   presets: Array.isArray(d && d.presets) ? d.presets : DEFAULT().presets,
-  rewards: Array.isArray(d && d.rewards) ? d.rewards : DEFAULT().rewards });
+  rewards: Array.isArray(d && d.rewards)
+    ? [...d.rewards, ...EXTRA_REWARDS.filter((x) => !seededIds(d).has(x.id) && !d.rewards.some((r) => r.id === x.id))] : DEFAULT().rewards,
+  rewardsSeeded: EXTRA_REWARDS.map((x) => x.id) });
+// Suggestions this account has already been offered (so deleted ones don't come back). Older data used a boolean flag for x1-x8.
+const seededIds = (d) => new Set(d.rewardsSeeded || (d.rewardsV2 ? EXTRA_REWARDS.slice(0, 8).map((x) => x.id) : []));
 
 /* ---------- state ---------- */
 let S = DEFAULT();
@@ -249,7 +298,17 @@ function totalXp() {
   let t = 0;
   for (const k in S.days) t += dayXp(k);
   t += S.custom.filter((c) => c.done).length * 50;
-  return Math.round(t);
+  t -= overdueGoals().length * OVERDUE_PENALTY;
+  return Math.max(0, Math.round(t));
+}
+// A personal goal still open after its due day costs xp; finishing it late gives the xp back.
+const OVERDUE_PENALTY = 100;
+const overdueGoals = () => S.custom.filter((c) => !c.done && c.due && c.due < TODAY());
+function checkOverdue() {
+  const fresh = overdueGoals().filter((c) => !c.warned);
+  if (!fresh.length) return;
+  fresh.forEach((c) => { c.warned = true; toast(`⏰ Missed: ${c.text} (−${OVERDUE_PENALTY} xp). Finish it to win it back!`); });
+  save();
 }
 function levelInfo(xp) {
   let lvl = 1, need = 100, left = xp;
@@ -283,10 +342,28 @@ const BADGES = [
   { id: 'water7', emo: '\u{1F4A7}', name: 'Hydrated',       desc: '7 days at your water goal',     c: 'var(--sun)',   ok: () => count((k) => met('water', k)) >= 7 },
   { id: 'sleep7',  emo: '\u{1F319}', name: 'Well rested',    desc: '7 days at your sleep goal',     c: 'var(--grape)', ok: () => count((k) => met('sleep', k)) >= 7 },
   { id: 'goal',    emo: '\u{1F3AF}', name: 'Goal getter',    desc: 'Finish a personal goal',        c: 'var(--mint)',  ok: () => S.custom.some((c) => c.done) },
-  { id: 'lvl5',    emo: '\u{1F451}', name: 'Level 5',        desc: 'Reach level 5',                 c: 'var(--grape)', ok: () => levelInfo(totalXp()).lvl >= 5 },
+  { id: 'gym25',   emo: '\u{1F4AF}', name: 'Quarter century', desc: '25 workouts logged',            c: 'var(--coral)', ok: () => gymDates().length >= 25 },
+  { id: 'gym100',  emo: '\u{1F9BE}', name: 'Century club',   desc: '100 workouts logged',           c: 'var(--coral)', ok: () => gymDates().length >= 100 },
+  { id: 'variety', emo: '\u{1F3B2}', name: 'Variety pack',   desc: 'Log 4 different workout types', c: 'var(--coral)', ok: () => new Set(gymDates().map((k) => day(k).gymType).filter(Boolean)).size >= 4 },
+  { id: 'runner',  emo: '\u{1F3C3}', name: 'Runner',         desc: 'Log 5 runs',                    c: 'var(--coral)', ok: () => gymDates().filter((k) => day(k).gymType === 'Run').length >= 5 },
+  { id: 'weekend', emo: '\u{1F3D6}️', name: 'Weekend warrior', desc: 'Work out on a Saturday and Sunday', c: 'var(--coral)', ok: () => gymDates().some((k) => parse(k).getDay() === 6 && day(key(addDays(parse(k), 1))).gym) },
+  { id: 'comeback', emo: '\u{1F4AB}', name: 'Comeback kid',  desc: 'Train again after 3+ days off', c: 'var(--sun)',   ok: () => gymDates().some((k, i, a) => i && (parse(k) - parse(a[i - 1])) / 864e5 >= 4) },
+  { id: 'rest1',   emo: '\u{1F60C}', name: 'Smart rest',     desc: 'Take a planned rest day',       c: 'var(--sun)',   ok: () => count((k) => day(k).rest) >= 1 },
+  { id: 'streak14', emo: '\u{1F31E}', name: 'Fortnight',     desc: '14-day streak on any habit',    c: 'var(--sun)',   ok: () => topStreak() >= 14 },
+  { id: 'perfect10', emo: '\u{1F51F}', name: 'Ten perfect',  desc: '10 perfect days',               c: 'var(--sun)',   ok: () => count(perfect) >= 10 },
+  { id: 'hours100', emo: '\u{23F3}', name: 'Centurion',      desc: '100 hours of work logged',      c: 'var(--sky)',   ok: () => Object.values(S.days).reduce((s, d) => s + (d.work || 0), 0) >= 100 },
+  { id: 'protein7', emo: '\u{1F969}', name: 'Protein pro',   desc: '7 days at your protein goal',   c: 'var(--grape)', ok: () => count((k) => (day(k).food || []).length && foodTotals(k).p >= S.goals.protein) >= 7 },
+  { id: 'water30', emo: '\u{1F433}', name: 'Basically a fish', desc: '30 days at your water goal', c: 'var(--sun)',   ok: () => count((k) => met('water', k)) >= 30 },
+  { id: 'sleep30', emo: '\u{1F6CC}', name: 'Sleeping beauty', desc: '30 days at your sleep goal',   c: 'var(--grape)', ok: () => count((k) => met('sleep', k)) >= 30 },
+  { id: 'goals3',  emo: '\u{1F9ED}', name: 'Goal machine',   desc: 'Finish 3 personal goals',       c: 'var(--mint)',  ok: () => S.custom.filter((c) => c.done).length >= 3 },
+  { id: 'treat',   emo: '\u{1F381}', name: 'Treat yourself', desc: 'Claim a reward',                c: 'var(--grape)', ok: () => S.rewards.some((r) => r.claimed) },
+  { id: 'lvl10',   emo: '\u{1F48E}', name: 'Double digits',  desc: 'Reach level 10',                c: 'var(--grape)', ok: () => levelInfo(totalXp()).lvl >= 10 },
+  { id: 'lvl5',   emo: '\u{1F451}', name: 'Level 5',        desc: 'Reach level 5',                 c: 'var(--grape)', ok: () => levelInfo(totalXp()).lvl >= 5 },
 ];
+const gymDates = () => Object.keys(S.days).filter((k) => day(k).gym).sort();
 const topStreak = () => Math.max(...HABITS.filter((h) => h.key !== 'gym').map((h) => dailyStreak(h.key)));
 function syncBadges(silent) {
+  checkOverdue();
   const won = [];
   for (const b of BADGES) if (!S.badges[b.id] && b.ok()) { S.badges[b.id] = TODAY(); won.push(b); }
   if (!won.length) return;
@@ -461,7 +538,8 @@ function renderCal() {
 
 /* ---------- render: focus / custom goals / badges ---------- */
 function goalRow(c) {
-  const due = c.due ? `<span class="tiny">${parse(c.due).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>` : '';
+  const late = !c.done && c.due && c.due < TODAY();
+  const due = c.due ? `<span class="tiny ${late ? 'late' : ''}">${late ? `−${OVERDUE_PENALTY} xp · ` : ''}${parse(c.due).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>` : '';
   return `<div class="goal ${c.done ? 'done' : ''}"><button class="check ${c.done ? 'on' : ''}" data-goal="${c.id}" aria-label="Toggle goal">${c.done ? '✓' : ''}</button>
     <span class="txt">${esc(c.text)}</span>${due}<button class="x" data-del="${c.id}" aria-label="Delete goal">×</button></div>`;
 }
@@ -668,7 +746,8 @@ function renderRewards() {
     return `<div class="reward ${state}"><button class="x" data-delreward="${r.id}" aria-label="Delete reward">×</button>
       <span class="lvl">Lv ${r.level}</span><span class="big">${esc(r.emo)}</span><h3>${esc(r.text)}</h3>${foot}</div>`;
   };
-  const list = sortedRewards();
+  // Ready to claim first, then what's coming up, then what you've already enjoyed.
+  const all = sortedRewards(), list = [...all.filter((r) => !r.claimed && r.level <= L.lvl), ...all.filter((r) => !r.claimed && r.level > L.lvl), ...all.filter((r) => r.claimed)];
   $('rewardsCard').innerHTML = `
     <div class="card-head"><h2>Rewards</h2><span class="tiny">You’re level ${L.lvl}</span></div>
     <p class="empty" style="margin-bottom:14px">Treats you set for yourself. Reach the level, then tap claim once you’ve actually enjoyed it (or moved the money).</p>
@@ -717,7 +796,7 @@ function renderGoals() {
       <button class="btn" data-usecalc style="margin-top:12px">Use these targets</button>`
       : '<p class="empty">Fill in age, height and weight to get a daily target.</p>'}`;
   $('customCard').innerHTML = `
-    <div class="card-head"><h2>Personal goals</h2><span class="tiny">+50 xp each</span></div>
+    <div class="card-head"><h2>Personal goals</h2><span class="tiny">+50 xp done · −${OVERDUE_PENALTY} if it slips past its due date</span></div>
     <form class="add" id="addGoal"><input type="text" id="goalText" placeholder="Run 5k without stopping…" maxlength="120" required aria-label="Goal">
       <input type="date" id="goalDue" aria-label="Optional due date"><button class="btn">Add</button></form>
     ${S.custom.length ? S.custom.map(goalRow).join('') : '<p class="empty">Goals you set will live here.</p>'}`;
