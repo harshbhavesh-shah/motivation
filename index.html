@@ -41,6 +41,7 @@
 
   <nav class="tabs">
     <button data-view="home" class="on">Today</button>
+    <button data-view="food">Food</button>
     <button data-view="badges">Badges</button>
     <button data-view="rewards">Rewards</button>
     <button data-view="goals">Goals</button>
@@ -50,6 +51,7 @@
     <section class="grid">
       <div class="col">
         <article class="card" id="dayCard"></article>
+        <article class="card" id="foodMini"></article>
         <article class="card" id="weekCard"></article>
       </div>
       <div class="col">
@@ -57,6 +59,13 @@
         <article class="card" id="rewardCard"></article>
         <article class="card" id="focusCard"></article>
       </div>
+    </section>
+  </main>
+
+  <main id="food" class="view" hidden>
+    <section class="grid">
+      <article class="card" id="foodSummary"></article>
+      <article class="card" id="foodMeals"></article>
     </section>
   </main>
 
@@ -69,11 +78,41 @@
       <article class="card" id="targetsCard"></article>
       <article class="card" id="customCard"></article>
     </section>
+    <section class="card" id="calcCard"></section>
     <section class="card" id="dataCard"></section>
   </main>
 
   <footer class="foot tiny" id="saveState">Loading…</footer>
 </div>
+<dialog id="foodDlg" aria-label="Add food">
+  <div class="dlg-head"><h2>Add food</h2><button class="x" data-closedlg aria-label="Close">×</button></div>
+  <div class="dtabs" id="dtabs"><button data-ftab="scan">📷 Scan</button><button data-ftab="saved">Saved</button><button data-ftab="manual">By hand</button></div>
+
+  <section id="scanPane">
+    <div class="scanbox"><video id="scanVideo" playsinline muted></video><div class="reticle"></div></div>
+    <p class="tiny" id="scanMsg"></p>
+    <form class="add" id="codeForm"><input type="text" id="codeIn" inputmode="numeric" placeholder="or type the barcode number" aria-label="Barcode number"><button class="btn">Look up</button></form>
+  </section>
+
+  <section id="savedPane" hidden>
+    <input type="text" id="savedQ" placeholder="Search your foods…" aria-label="Search saved foods">
+    <div id="savedList"></div>
+  </section>
+
+  <section id="manualPane" hidden>
+    <form id="manualForm">
+      <div class="field"><label for="mfName">Name</label><input type="text" id="mfName" maxlength="60" required style="width:170px"></div>
+      <div class="field"><label for="mfBasis">Values are</label><select id="mfBasis"><option value="g">per 100 g</option><option value="unit">per serving</option></select></div>
+      <div class="field"><label for="mfKcal">Calories</label><input type="number" id="mfKcal" min="0" step="any" required></div>
+      <div class="field"><label for="mfP">Protein (g)</label><input type="number" id="mfP" min="0" step="any" value="0"></div>
+      <div class="field"><label for="mfF">Fat (g)</label><input type="number" id="mfF" min="0" step="any" value="0"></div>
+      <div class="field"><label for="mfC">Carbs (g)</label><input type="number" id="mfC" min="0" step="any" value="0"></div>
+      <button class="btn" style="margin-top:10px">Next</button>
+    </form>
+  </section>
+
+  <section id="pickPane" hidden><div id="pickBody"></div></section>
+</dialog>
 <canvas id="fx"></canvas>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script type="module" src="app.js"></script>
