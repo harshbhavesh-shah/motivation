@@ -12,6 +12,12 @@ const EAT_LABELS = ['', 'Rough', 'Okay', 'Great'];
 const LEVELS = ['Just starting', 'Warming up', 'Finding rhythm', 'Showing up', 'Steady', 'In the groove',
   'Locked in', 'Unshakeable', 'Relentless', 'The long game'];
 const PERFECT_BONUS = 40;
+const RING_BONUS = 20; // closing all three Apple Fitness rings, on top of the normal quests
+const RINGS = [
+  { key: 'move',     label: 'Move',     unit: 'kcal', color: '#fa114f', step: 50, max: 5000 },
+  { key: 'exercise', label: 'Exercise', unit: 'min',  color: '#6fd10f', step: 5,  max: 600 },
+  { key: 'stand',    label: 'Stand',    unit: 'hr',   color: '#14c9d2', step: 1,  max: 24 },
+];
 const NUDGES = [
   'Small and done beats perfect and postponed.',
   'You don’t need motivation. You need the next ten minutes.',
@@ -81,7 +87,7 @@ const EXTRA_REWARDS = [
 ];
 const DEFAULT = () => ({
   name: '',
-  goals: { gymPerWeek: 4, eatDaysPerWeek: 5, workPerDay: 6, water: 8, sleep: 8, kcal: 2000, protein: 100 },
+  goals: { gymPerWeek: 4, eatDaysPerWeek: 5, workPerDay: 6, water: 8, sleep: 8, kcal: 2000, protein: 100, ringMove: 500, ringExercise: 30, ringStand: 12 },
   profile: { sex: 'm', age: '', height: '', weight: '', activity: 1.375, pace: 0.5 },
   foods: [],
   quick: {},
@@ -129,7 +135,7 @@ async function load() {
   status();
   render();
   syncBadges(true);
-  initCloud();
+  initCloud().then(() => { if (!cloud) applyPending(); });
 }
 function status(extra) {
   $('saveState').textContent = extra || (cloud && cloud.user ? `Synced to your account (${cloud.user.email}).`
@@ -177,8 +183,8 @@ async function initCloud() {
       cloud.write = (d) => F.setDoc(ref, d);
       cloud.unsub = F.onSnapshot(ref, (snap) => {
         if (snap.metadata.hasPendingWrites) return;
-        if (snap.exists()) { S = norm(snap.data()); try { localStorage.setItem('steady', JSON.stringify(S)); } catch {} syncBadges(true); render(); status(); }
-        else { cloud.write(JSON.parse(JSON.stringify(S))).then(() => status()); } // first sign-in: upload what's here
+        if (snap.exists()) { S = norm(snap.data()); try { localStorage.setItem('steady', JSON.stringify(S)); } catch {} syncBadges(true); render(); status(); applyPending(); }
+        else { cloud.write(JSON.parse(JSON.stringify(S))).then(() => { status(); applyPending(); }); } // first sign-in: upload what's here
       }, () => status('Couldn’t sync. Check your Firestore rules.'));
     });
   } catch { status('Couldn’t load Firebase — using local data.'); }
@@ -293,7 +299,11 @@ function habitXp(h, k) {
     case 'sleep': return Math.min(1, (d.sleep || 0) / g.sleep) * 10;
   }
 }
-const dayXp = (k) => HABITS.reduce((s, h) => s + habitXp(h.key, k), 0) + (perfect(k) ? PERFECT_BONUS : 0);
+function ringsClosed(k) {
+  const r = day(k).rings, g = S.goals; if (!r) return false;
+  return r.move >= g.ringMove && r.exercise >= g.ringExercise && r.stand >= g.ringStand;
+}
+const dayXp = (k) => HABITS.reduce((s, h) => s + habitXp(h.key, k), 0) + (perfect(k) ? PERFECT_BONUS : 0) + (ringsClosed(k) ? RING_BONUS : 0);
 function totalXp() {
   let t = 0;
   for (const k in S.days) t += dayXp(k);
@@ -358,7 +368,10 @@ const BADGES = [
   { id: 'goals3',  emo: '\u{1F9ED}', name: 'Goal machine',   desc: 'Finish 3 personal goals',       c: 'var(--mint)',  ok: () => S.custom.filter((c) => c.done).length >= 3 },
   { id: 'treat',   emo: '\u{1F381}', name: 'Treat yourself', desc: 'Claim a reward',                c: 'var(--grape)', ok: () => S.rewards.some((r) => r.claimed) },
   { id: 'lvl10',   emo: '\u{1F48E}', name: 'Double digits',  desc: 'Reach level 10',                c: 'var(--grape)', ok: () => levelInfo(totalXp()).lvl >= 10 },
-  { id: 'lvl5',   emo: '\u{1F451}', name: 'Level 5',        desc: 'Reach level 5',                 c: 'var(--grape)', ok: () => levelInfo(totalXp()).lvl >= 5 },
+  { id: 'ring1',   emo: '⭕', name: 'Ring closer',    desc: 'Close all three Apple rings',   c: 'var(--coral)', ok: () => count(ringsClosed) >= 1 },
+  { id: 'ring7',   emo: '\u{1F501}', name: 'Ring master',  desc: 'Close all rings on 7 days',     c: 'var(--mint)',  ok: () => count(ringsClosed) >= 7 },
+  { id: 'ring30',  emo: '\u{1F4A5}', name: 'Unbroken',     desc: 'Close all rings on 30 days',    c: 'var(--sky)',   ok: () => count(ringsClosed) >= 30 },
+  { id: 'lvl5',  emo: '\u{1F451}', name: 'Level 5',        desc: 'Reach level 5',                 c: 'var(--grape)', ok: () => levelInfo(totalXp()).lvl >= 5 },
 ];
 const gymDates = () => Object.keys(S.days).filter((k) => day(k).gym).sort();
 const topStreak = () => Math.max(...HABITS.filter((h) => h.key !== 'gym').map((h) => dailyStreak(h.key)));
@@ -426,7 +439,7 @@ function update(k, patch) {
   const metBefore = HABITS.filter((h) => met(h.key, k)).map((h) => h.key), wasPerfect = perfect(k);
   S.days[k] = { ...day(k), ...patch };
   const d = S.days[k];
-  if (!d.gym && !d.rest && !d.eat && !d.work && !d.water && !d.sleep && !(d.food && d.food.length)) delete S.days[k];
+  if (!d.gym && !d.rest && !d.eat && !d.work && !d.water && !d.sleep && !(d.food && d.food.length) && !d.rings) delete S.days[k];
   const after = totalXp(), info = levelInfo(after);
   const newlyMet = HABITS.filter((h) => met(h.key, k) && !metBefore.includes(h.key));
   if (newlyMet.length) burst(28);
@@ -569,6 +582,16 @@ function logPreset(id) {
 }
 function renderQPresets() {
   $('qPresets').innerHTML = S.presets.length ? S.presets.map((p) => `<span class="pchip"><button type="button" class="chip" data-preset="${esc(p.id)}">⚡ ${esc(p.name)} <small>${p.kcal} kcal</small></button><button type="button" class="x" data-delpreset="${esc(p.id)}" aria-label="Delete preset">×</button></span>`).join('') : '';
+}
+function renderRings() {
+  const k = selected, r = day(k).rings || { move: 0, exercise: 0, stand: 0 }, g = S.goals;
+  const goal = { move: g.ringMove, exercise: g.ringExercise, stand: g.ringStand };
+  $('ringsCard').innerHTML = `
+    <div class="card-head"><h2>⌚ Activity rings</h2><span class="tiny">${ringsClosed(k) ? `All closed! +${RING_BONUS} xp` : `+${RING_BONUS} xp when all three close`}</span></div>
+    <div class="rings">${RINGS.map((x) => ring(x.label, r[x.key], goal[x.key], x.color, `${r[x.key]}`, `/ ${goal[x.key]} ${x.unit}`)).join('')}</div>
+    <div class="ring-edit">${RINGS.map((x) => `<div class="stepper" style="--c:${x.color}"><button data-ringstep="${x.key}" data-by="-1" aria-label="less ${x.label}">−</button>
+      <output>${x.label}</output><button data-ringstep="${x.key}" data-by="1" aria-label="more ${x.label}">+</button></div>`).join('')}</div>
+    <p class="tiny" style="margin-top:10px">Fill these in by hand, or have your iPhone do it: see <button class="dayjump" data-view="goals">Goals</button>.</p>`;
 }
 function renderFoodMini() {
   const k = selected, t = foodTotals(k), g = S.goals.kcal;
@@ -779,7 +802,21 @@ function renderGoals() {
     ${f('water', 'Glasses of water per day', '', g.water)}
     ${f('sleep', 'Hours of sleep', '', g.sleep, 0.5)}
     ${f('kcal', 'Daily calories', 'Your eating quest completes near this number', g.kcal, 50)}
-    ${f('protein', 'Daily protein (g)', 'Helps keep muscle while cutting', g.protein, 5)}`;
+    ${f('protein', 'Daily protein (g)', 'Helps keep muscle while cutting', g.protein, 5)}
+    ${f('ringMove', 'Move ring goal (kcal)', 'Copy it from Apple Fitness', g.ringMove, 10)}
+    ${f('ringExercise', 'Exercise ring goal (min)', '', g.ringExercise, 5)}
+    ${f('ringStand', 'Stand ring goal (hours)', '', g.ringStand)}`;
+  $('ringsHelp').innerHTML = `
+    <div class="card-head"><h2>⌚ Apple Fitness rings</h2><span class="tiny">Optional, set up once</span></div>
+    <p class="tiny" style="margin:0 0 12px">A website can’t read Apple Health, so your iPhone has to send the numbers. A Shortcut does it each evening: it reads your rings and opens this link with the numbers filled in.</p>
+    <ol class="steps">
+      <li><b>Shortcuts</b> app → <b>Automation</b> → <b>New</b> → <b>Time of Day</b> (say 9:00 pm, daily) → <b>Run Immediately</b>.</li>
+      <li>Add <b>Find Health Samples</b> for <b>Active Energy</b>, start date is today. Then <b>Calculate Statistics</b> (Sum). Repeat for <b>Exercise Time</b> (Sum) and <b>Stand Hour</b> (Count).</li>
+      <li>Add a <b>Text</b> action with the link below, replacing the three words with those three results.</li>
+      <li>Add <b>Open URLs</b> with that text. Open the link once in Safari first and sign in, so it can save.</li>
+    </ol>
+    <div class="linkbox"><code>${esc(ringUrl())}</code><button class="btn ghost" data-copyurl>Copy</button></div>
+    <p class="tiny" style="margin-top:10px">Action names vary a little between iOS versions. If a step is missing, tell me what you see and I’ll adjust. You can always log rings by hand on the Today tab.</p>`;
   const p = S.profile, c = calc();
   const sel = (id, opts, val) => `<select id="${id}" data-prof="${id}">${opts.map(([v, l]) => `<option value="${v}" ${String(v) === String(val) ? 'selected' : ''}>${l}</option>`).join('')}</select>`;
   const num = (id, label, val, ph) => `<div class="field"><label for="${id}">${label}</label><input type="number" id="${id}" data-prof="${id}" value="${val}" placeholder="${ph}" min="0" step="any"></div>`;
@@ -812,7 +849,7 @@ const view = () => VIEWS.find((v) => !$(v).hidden);
 function render() {
   renderHeader();
   const v = view();
-  if (v === 'home') { renderDay(); renderFoodMini(); renderWeek(); renderCal(); renderNextReward(); renderFocus(); }
+  if (v === 'home') { renderDay(); renderFoodMini(); renderRings(); renderWeek(); renderCal(); renderNextReward(); renderFocus(); }
   else if (v === 'food') renderFood();
   else if (v === 'badges') renderBadges();
   else if (v === 'rewards') renderRewards();
@@ -840,6 +877,14 @@ document.addEventListener('click', (e) => {
     const c = S.custom.find((x) => x.id === ds.goal); c.done = !c.done;
     if (c.done) { toast('\u{1F3AF} Goal done! +50 xp'); burst(70); }
     syncBadges(false); save(); return render();
+  }
+  if (ds.ringstep) {
+    const x = RINGS.find((q) => q.key === ds.ringstep), cur = day(selected).rings || { move: 0, exercise: 0, stand: 0 };
+    return update(selected, { rings: { ...cur, [x.key]: clamp(cur[x.key] + x.step * +ds.by, 0, x.max) } });
+  }
+  if (ds.copyurl !== undefined) {
+    const u = ringUrl();
+    return (navigator.clipboard ? navigator.clipboard.writeText(u) : Promise.reject()).then(() => toast('Link copied'), () => toast('Couldn’t copy. Select it and copy by hand.'));
   }
   if (ds.addfood) return openFood(ds.addfood);
   if (ds.ftab) return setFtab(ds.ftab);
@@ -932,5 +977,23 @@ document.addEventListener('change', (e) => {
     });
   }
 });
+
+/* ---------- Apple rings import: <site>?rings=MOVE,EXERCISE,STAND[&date=YYYY-MM-DD] (sent by an iPhone Shortcut) ---------- */
+const ringUrl = () => `${location.origin}${location.pathname}?rings=MOVE,EXERCISE,STAND`;
+let pendingRings = (() => {
+  const q = new URLSearchParams(location.search), raw = q.get('rings'); if (!raw) return null;
+  const [m, e, s] = raw.split(',').map(Number);
+  if (![m, e, s].every(Number.isFinite)) return null;
+  const dt = q.get('date'), date = /^\d{4}-\d{2}-\d{2}$/.test(dt || '') && dt <= TODAY() ? dt : TODAY();
+  return { date, rings: { move: clamp(Math.round(m), 0, 5000), exercise: clamp(Math.round(e), 0, 600), stand: clamp(Math.round(s), 0, 24) } };
+})();
+// Waits until your data has loaded (and you're signed in, if Firebase is on) so a cloud sync can't overwrite it.
+function applyPending() {
+  if (!pendingRings) return;
+  const p = pendingRings; pendingRings = null;
+  history.replaceState(null, '', location.pathname);
+  update(p.date, { rings: p.rings });
+  toast('⌚ Rings imported');
+}
 
 load();
